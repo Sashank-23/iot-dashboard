@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>IoT Cloud Monitoring Dashboard</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
+
+<style>
+
+body{
+font-family:'Segoe UI';
+background:#0b1220;
+color:white;
+margin:0;
+}
+
+.header{
+background:#020617;
+padding:20px;
+text-align:center;
+border-bottom:2px solid #1e293b;
+}
+
+.container{
+
+display:grid;
+
+grid-template-columns:
+repeat(auto-fit,minmax(260px,1fr));
+
+gap:20px;
+
+padding:30px;
+
+}
+
+.card{
+
+background:#111827;
+
+padding:25px;
+
+border-radius:15px;
+
+box-shadow:
+0 0 20px rgba(0,255,255,0.08);
+
+transition:.3s;
+
+}
+
+.card:hover{
+
+transform:translateY(-6px);
+
+box-shadow:
+0 0 30px rgba(0,255,255,0.25);
+
+}
+
+.title{
+
+color:#94a3b8;
+
+font-size:18px;
+
+}
+
+.value{
+
+font-size:34px;
+
+font-weight:bold;
+
+margin-top:10px;
+
+color:#22c55e;
+
+}
+
+.status{
+
+margin-top:10px;
+
+font-size:14px;
+
+}
+
+.good{
+
+color:#22c55e;
+
+}
+
+.warn{
+
+color:#f59e0b;
+
+}
+
+.danger{
+
+color:#ef4444;
+
+}
+
+.footer{
+
+text-align:center;
+
+padding:20px;
+
+color:#94a3b8;
+
+font-size:18px;
+
+}
+
+.clock{
+
+font-size:22px;
+
+margin-top:5px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+<h1>IoT Environmental Monitoring</h1>
+
+<div class="clock" id="clock"></div>
+
+</div>
+
+<div class="container">
+
+<div class="card">
+<div class="title">Temperature</div>
+<div id="temp" class="value">--</div>
+<div id="tempStatus" class="status"></div>
+</div>
+
+<div class="card">
+<div class="title">Humidity</div>
+<div id="hum" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="title">Pressure</div>
+<div id="pressure" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="title">Gas Resistance</div>
+<div id="gas" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="title">Voltage</div>
+<div id="volt" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="title">Current</div>
+<div id="curr" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="title">Power</div>
+<div id="power" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="title">Distance</div>
+<div id="dist" class="value">--</div>
+</div>
+
+</div>
+
+<div class="footer">
+
+Sensor Refresh Interval : 2 seconds
+
+</div>
+
+<script>
+
+/* Firebase */
+
+var firebaseConfig={
+
+databaseURL:
+"https://iotproject-cb5d4-default-rtdb.firebaseio.com/"
+
+};
+
+firebase.initializeApp(firebaseConfig);
+
+var db=firebase.database();
+
+var sensorArray=[];
+
+var index=0;
+
+/* Load dataset */
+
+db.ref("sensor_data").once("value",
+
+function(snapshot){
+
+snapshot.forEach(function(child){
+
+sensorArray.push(child.val());
+
+});
+
+});
+
+/* Update dashboard */
+
+function updateDashboard(data){
+
+document.getElementById("temp").innerHTML=
+data.BME280.temperature.toFixed(2)+" °C";
+
+document.getElementById("hum").innerHTML=
+data.BME280.humidity.toFixed(2)+" %";
+
+document.getElementById("pressure").innerHTML=
+data.BME280.pressure.toFixed(2)+" hPa";
+
+document.getElementById("gas").innerHTML=
+Math.round(data.BME280.gas_resistance)+" Ω";
+
+document.getElementById("volt").innerHTML=
+data.INA219.voltage.toFixed(2)+" V";
+
+document.getElementById("curr").innerHTML=
+data.INA219.current.toFixed(2)+" A";
+
+document.getElementById("power").innerHTML=
+data.INA219.power.toFixed(2)+" W";
+
+document.getElementById("dist").innerHTML=
+data.HCSR04.distance+" cm";
+
+/* Temperature condition */
+
+if(data.BME280.temperature<30)
+
+document.getElementById("tempStatus").innerHTML=
+"<span class='good'>Normal</span>";
+
+else if(data.BME280.temperature<33)
+
+document.getElementById("tempStatus").innerHTML=
+"<span class='warn'>Warm</span>";
+
+else
+
+document.getElementById("tempStatus").innerHTML=
+"<span class='danger'>High</span>";
+
+}
+
+/* 2 second sensor update */
+
+setInterval(function(){
+
+if(sensorArray.length>0){
+
+updateDashboard(sensorArray[index]);
+
+index++;
+
+if(index>=sensorArray.length)
+
+index=0;
+
+}
+
+},2000);
+
+/* Live clock (NTP simulation) */
+
+function updateClock(){
+
+var now=new Date();
+
+document.getElementById("clock").innerHTML=
+
+now.toLocaleDateString()+" "+
+now.toLocaleTimeString();
+
+}
+
+setInterval(updateClock,1000);
+
+updateClock();
+
+</script>
+
+</body>
+
+</html>
